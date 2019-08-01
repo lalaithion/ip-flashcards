@@ -14,9 +14,12 @@ limitations under the License. -}
 
 {-# LANGUAGE OverloadedStrings #-}
 
-import           Data.Maybe    (fromMaybe)
+import           Control.Monad (replicateM_)
+import           Data.Maybe    (fromMaybe, isJust, fromJust, fromMaybe)
 import           System.Random
-import           Turtle        hiding (Format, format, s, x)
+import           System.Environment
+import           System.Exit
+import           Text.Read
 
 import           Lib
 
@@ -28,22 +31,74 @@ data Options = Options
   , private :: Bool
   } deriving (Eq, Show)
 
--- | 'intoOptions" converts a bunch of individual values into an 'Options' value
-intoOptions :: Int -> Bool -> Bool -> Maybe Class -> Bool ->  Options
-intoOptions n c b s p = Options
-  (if c && b then Both else if c then Cidr else if b then Binary else Both)
-  n
-  (fromMaybe All s)
-  p
+data PartialOptions = PartialOptions
+  { mformat  :: Maybe Format
+  , mamount  :: Maybe Int
+  , mipclass :: Maybe Class
+  , mprivate :: Maybe Bool
+  } deriving (Eq, Show)
 
--- | 'parser' is a command line parser of 'Options'
-parser :: Parser Options
-parser = intoOptions
-  <$> optInt "number" 'n' "output this many values"
-  <*> switch "cidr" 'c' "use cider notation"
-  <*> switch "binary" 'b' "use binary notation"
-  <*> optional (optRead "class" 's' "only generate class A, B, C (or All) ips")
-  <*> switch "private" 'p' "only generate private ips"
+defaultPartial :: PartialOptions
+defaultPartial = PartialOptions Nothing Nothing Nothing Nothing
+
+helpMessage :: String
+helpMessage = "ip-generator"
+
+printHelpAndExit :: IO a
+printHelpAndExit = do
+  putStrLn helpMessage
+  exitFailure
+
+-- | 'intoOptions' converts a PartialOptions into an Options value
+-- filling either defaults or throwing errors.
+intoOptions :: PartialOptions -> IO Options
+intoOptions opts = Options
+  <$> return (fromMaybe Both (mformat opts))
+  <*> (if isJust (mamount opts) then return (fromJust (mamount opts)) else printHelpAndExit)
+  <*> return (fromMaybe All (mipclass opts))
+  <*> return (fromMaybe False (mprivate opts))
+
+addCidr :: PartialOptions -> PartialOptions
+addCidr opts = opts {mformat = Just Cidr}
+
+addBinary :: PartialOptions -> PartialOptions
+addBinary opts = opts {mformat = Just Binary}
+
+addPrivate :: PartialOptions -> PartialOptions
+addPrivate opts = opts {mprivate = Just True}
+
+addClass :: PartialOptions -> [String] -> IO (PartialOptions, [String])
+addClass opts ("A":xs) = return (opts {mipclass = Just A}, xs)
+addClass opts ("B":xs) = return (opts {mipclass = Just B}, xs)
+addClass opts ("C":xs) = return (opts {mipclass = Just C}, xs)
+addClass _ _ = printHelpAndExit
+
+addNumber :: PartialOptions -> [String] -> IO (PartialOptions, [String])
+addNumber opts (x:xs) | Just n <- readMaybe x = return (opts {mamount = Just n}, xs)
+addNumber _ _ = printHelpAndExit
+
+-- | expandJumble takes arguments like "-cpn" and makes them into "-c -p -n"
+expandJumble :: String -> [String]
+expandJumble = map (\c -> ['-', c])
+
+parseOptions :: PartialOptions -> [String] -> IO Options
+parseOptions acc [] = intoOptions acc
+parseOptions acc (x:xs)
+  | x == "-c" || x == "--cidr" = parseOptions (addCidr acc) xs
+  | x == "-b" || x == "--binary" = parseOptions (addBinary acc) xs
+  | x == "-p" || x == "--private" = parseOptions (addPrivate acc) xs
+  | x == "-s" || x == "--class" = do
+    (acc', xs') <- addClass acc xs
+    parseOptions acc' xs'
+  | x == "-n" || x == "--number" = do
+    (acc', xs') <- addNumber acc xs
+    parseOptions acc' xs'
+  | head x == '-' = parseOptions acc (expandJumble (tail x) ++ xs)
+  | otherwise = printHelpAndExit
+
+-- | 'parse' parses the command line input.
+parse :: IO Options
+parse = getArgs >>= parseOptions defaultPartial
 
 -- | 'genWith' calls the generation functions in 'Lib' with the information in 'Options'
 genWith :: Options -> IO (Ipv4, Mask)
@@ -73,6 +128,6 @@ one ops = do
 
 -- | 'main' parses the command line options, and then executes 'one' 'amount' times
 main :: IO ()
-main = sh $ do
-  ops <- options "Generates IP addresses and Subnet Masks" parser
-  liftIO $ replicateM_ (amount ops) (one ops)
+main = do
+  ops <- parse
+  replicateM_ (amount ops) (one ops)

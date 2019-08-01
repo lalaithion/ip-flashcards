@@ -17,10 +17,9 @@ module Lib where
 
 import           Data.Bits     ((.&.), (.|.))
 import           Data.List
+import           Data.List.Split
 import           System.Random
-import qualified Data.Text as T
-
-import Test.QuickCheck (Arbitrary, arbitrary)
+import           Text.Read
 
 ----------------------
 -- * Data Structures
@@ -240,42 +239,19 @@ mkPrivate (Octets a b c d)
 -- * Parsing
 -------------
 
--- | 'readText' is 'read' but for 'T.Text'.
-readText :: (Read a) => T.Text -> a
-readText = read . T.unpack
-
 -- | 'parseIP' parses an IP from a 'T.Text' value.
-parseIP :: T.Text -> Ipv4
-parseIP t = let
-  [a,b,c,d] = T.splitOn "." t
-  in Octets (readText a) (readText b) (readText c) (readText d)
+parseIP :: String -> Maybe Ipv4
+parseIP t = do
+  [a,b,c,d] <- mapM readMaybe $ splitOn "." t
+  return $ Octets a b c d
 
 -- | 'parseMask' parses a Mask and its format from a 'T.Text' value, in either 'Slash' or 'Bits' format.
-parseMask :: T.Text -> (Mask, Format)
-parseMask t = case T.head t of
-  '/' -> (Mask $ readText $ T.tail t, Cidr)
-  _ -> (Mask $ sum $ map (invResidual . readText) $ T.splitOn "." t, Binary)
-
---------------
--- * Testing
---------------
-
-instance Arbitrary Mask where
-  arbitrary = Mask . (+8) . (flip mod 24) <$> arbitrary
-
-instance Arbitrary Ipv4 where
-  arbitrary = Octets <$> ab <*> ab <*> ab <*> ab
-    where ab = flip mod 256 <$> arbitrary
-
-newtype ArbA = ArbA (Ipv4, Mask) deriving (Eq, Show)
-newtype ArbB = ArbB (Ipv4, Mask) deriving (Eq, Show)
-newtype ArbC = ArbC (Ipv4, Mask) deriving (Eq, Show)
-
-instance Arbitrary ArbA where
-  arbitrary = ArbA <$> (mkA <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary)
-
-instance Arbitrary ArbB where
-  arbitrary = ArbB <$> (mkB <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary)
-
-instance Arbitrary ArbC where
-  arbitrary = ArbC <$> (mkC <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary)
+parseMask :: String -> Maybe (Mask, Format)
+parseMask "" = Nothing
+parseMask t = case head t of
+  '/' -> do
+    m <- Mask <$> readMaybe (tail t)
+    return (m, Cidr)
+  _ -> do
+    [a, b, c, d] <- map invResidual <$> mapM readMaybe (splitOn "." t)
+    return (Mask (a + b + c + d), Binary)
