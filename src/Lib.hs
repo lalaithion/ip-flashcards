@@ -20,8 +20,6 @@ import           Data.List
 import           System.Random
 import qualified Data.Text as T
 
-import Test.QuickCheck (Arbitrary, arbitrary)
-
 ----------------------
 -- * Data Structures
 ----------------------
@@ -255,27 +253,3 @@ parseMask :: T.Text -> (Mask, Format)
 parseMask t = case T.head t of
   '/' -> (Mask $ readText $ T.tail t, Cidr)
   _ -> (Mask $ sum $ map (invResidual . readText) $ T.splitOn "." t, Binary)
-
---------------
--- * Testing
---------------
-
-instance Arbitrary Mask where
-  arbitrary = Mask . (+8) . (flip mod 24) <$> arbitrary
-
-instance Arbitrary Ipv4 where
-  arbitrary = Octets <$> ab <*> ab <*> ab <*> ab
-    where ab = flip mod 256 <$> arbitrary
-
-newtype ArbA = ArbA (Ipv4, Mask) deriving (Eq, Show)
-newtype ArbB = ArbB (Ipv4, Mask) deriving (Eq, Show)
-newtype ArbC = ArbC (Ipv4, Mask) deriving (Eq, Show)
-
-instance Arbitrary ArbA where
-  arbitrary = ArbA <$> (mkA <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary)
-
-instance Arbitrary ArbB where
-  arbitrary = ArbB <$> (mkB <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary)
-
-instance Arbitrary ArbC where
-  arbitrary = ArbC <$> (mkC <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary)

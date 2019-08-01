@@ -14,6 +14,7 @@ limitations under the License. -}
 
 import Test.Hspec
 import Test.QuickCheck
+import Test.QuickCheck (Arbitrary, arbitrary)
 
 import Control.Monad
 import Data.Char
@@ -21,7 +22,29 @@ import Data.List.Split
 import Data.Maybe
 import qualified Data.Text as T
 
-import Lib 
+import Lib
+
+-- Yes, there are orphan instances. I am not compiling the entire test
+-- framework into the entire release binary.
+instance Arbitrary Mask where
+  arbitrary = Mask . (+8) . (flip mod 24) <$> arbitrary
+
+instance Arbitrary Ipv4 where
+  arbitrary = Octets <$> ab <*> ab <*> ab <*> ab
+    where ab = flip mod 256 <$> arbitrary
+
+newtype ArbA = ArbA (Ipv4, Mask) deriving (Eq, Show)
+newtype ArbB = ArbB (Ipv4, Mask) deriving (Eq, Show)
+newtype ArbC = ArbC (Ipv4, Mask) deriving (Eq, Show)
+
+instance Arbitrary ArbA where
+  arbitrary = ArbA <$> (mkA <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary)
+
+instance Arbitrary ArbB where
+  arbitrary = ArbB <$> (mkB <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary)
+
+instance Arbitrary ArbC where
+  arbitrary = ArbC <$> (mkC <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary)
 
 main :: IO ()
 main = hspec $ do
@@ -31,12 +54,12 @@ main = hspec $ do
   describe "Ipv4" $ do
     it "shows four numbers separated by dots" $ do
       property (\i@(Octets a b c d) -> show i == show a ++ "." ++ show b ++ "." ++ show c ++ "." ++ show d)
-  
+
   describe "Slash" $ do
     it "shows with a slash" $ do
-      property $ (\m -> let 
+      property $ (\m -> let
        s = show $ Slash m
-       in head s == '/' && all isDigit (tail s))   
+       in head s == '/' && all isDigit (tail s))
 
     it "shows examples correctly" $ do
       (show $ Slash $ Mask 9) `shouldBe` "/9"
@@ -45,7 +68,7 @@ main = hspec $ do
 
   describe "Bits" $ do
     it "shows four numbers separated by dots" $ do
-      property (\m -> let 
+      property (\m -> let
         qs = splitOn "." $ show $ Bits m
         in length qs == 4 && all (all isDigit) qs)
 
@@ -56,7 +79,7 @@ main = hspec $ do
 
   describe "Wildcard" $ do
     it "shows four numbers separated by dots" $ do
-      property (\m -> let 
+      property (\m -> let
         qs = splitOn "." $ show $ Wildcard m
         in length qs == 4 && all (all isDigit) qs)
 
@@ -73,7 +96,7 @@ main = hspec $ do
 
   describe "toIp" $ do
     it "produces a valid ip" $ do
-      property (\m -> validIp (toIp m)) 
+      property (\m -> validIp (toIp m))
 
     it "shows the same as Bits" $ do
       property (\m -> show (toIp m) == show (Bits m))
@@ -88,22 +111,22 @@ main = hspec $ do
       hostNum (Mask 26) `shouldBe` 62
 
   describe "subnetNum" $ do
-    it "always produces a positive number for class A networks" $ do 
+    it "always produces a positive number for class A networks" $ do
       property (\(ArbA (i, m)) -> fromMaybe 0 (subnetNum i m) >= 0)
 
-    it "always produces a positive number for class B networks" $ do 
+    it "always produces a positive number for class B networks" $ do
       property (\(ArbB (i, m)) -> fromMaybe 0 (subnetNum i m) >= 0)
 
-    it "always produces a positive number for class C networks" $ do 
+    it "always produces a positive number for class C networks" $ do
       property (\(ArbC (i, m)) -> fromMaybe 0 (subnetNum i m) >= 0)
 
     it "gives the right value for some examples" $ do
       subnetNum (Octets 110 0 0 0) (Mask 26) `shouldBe` Just 262144
-      subnetNum (Octets 150 0 0 0) (Mask 26) `shouldBe` Just 1024 
-      subnetNum (Octets 222 0 0 0) (Mask 26) `shouldBe` Just 4 
+      subnetNum (Octets 150 0 0 0) (Mask 26) `shouldBe` Just 1024
+      subnetNum (Octets 222 0 0 0) (Mask 26) `shouldBe` Just 4
 
       subnetNum (Octets 110 0 0 0) (Mask 19) `shouldBe` Just 2048
-      subnetNum (Octets 150 0 0 0) (Mask 19) `shouldBe` Just 8 
+      subnetNum (Octets 150 0 0 0) (Mask 19) `shouldBe` Just 8
 
       subnetNum (Octets 110 0 0 0) (Mask 9) `shouldBe` Just 2
 
@@ -118,38 +141,38 @@ main = hspec $ do
       property (\i m -> validIp (subnetAddr i m))
 
     it "gives the right value for some examples" $ do
-      subnetAddr (Octets 110 220 34 15) (Mask 8) `shouldBe` Octets 110 0 0 0  
-      subnetAddr (Octets 110 220 34 15) (Mask 16) `shouldBe` Octets 110 220 0 0  
-      subnetAddr (Octets 110 220 34 15) (Mask 24) `shouldBe` Octets 110 220 34 0  
-      subnetAddr (Octets 110 220 34 15) (Mask 11) `shouldBe` Octets 110 192 0 0 
+      subnetAddr (Octets 110 220 34 15) (Mask 8) `shouldBe` Octets 110 0 0 0
+      subnetAddr (Octets 110 220 34 15) (Mask 16) `shouldBe` Octets 110 220 0 0
+      subnetAddr (Octets 110 220 34 15) (Mask 24) `shouldBe` Octets 110 220 34 0
+      subnetAddr (Octets 110 220 34 15) (Mask 11) `shouldBe` Octets 110 192 0 0
       subnetAddr (Octets 110 220 34 15) (Mask 30) `shouldBe` Octets 110 220 34 12
-      subnetAddr (Octets 110 220 34 15) (Mask 31) `shouldBe` Octets 110 220 34 14 
-      subnetAddr (Octets 110 220 34 15) (Mask 32) `shouldBe` Octets 110 220 34 15 
+      subnetAddr (Octets 110 220 34 15) (Mask 31) `shouldBe` Octets 110 220 34 14
+      subnetAddr (Octets 110 220 34 15) (Mask 32) `shouldBe` Octets 110 220 34 15
 
   describe "start" $ do
     it "gives the right value for some examples" $ do
-      start (Octets 110 220 34 15) (Mask 8) `shouldBe` Octets 110 0 0 1  
-      start (Octets 110 220 34 15) (Mask 16) `shouldBe` Octets 110 220 0 1  
-      start (Octets 110 220 34 15) (Mask 24) `shouldBe` Octets 110 220 34 1  
-      start (Octets 110 220 34 15) (Mask 11) `shouldBe` Octets 110 192 0 1 
+      start (Octets 110 220 34 15) (Mask 8) `shouldBe` Octets 110 0 0 1
+      start (Octets 110 220 34 15) (Mask 16) `shouldBe` Octets 110 220 0 1
+      start (Octets 110 220 34 15) (Mask 24) `shouldBe` Octets 110 220 34 1
+      start (Octets 110 220 34 15) (Mask 11) `shouldBe` Octets 110 192 0 1
       start (Octets 110 220 34 15) (Mask 30) `shouldBe` Octets 110 220 34 13
-      start (Octets 110 220 34 15) (Mask 31) `shouldBe` Octets 110 220 34 14 
-      start (Octets 110 220 34 15) (Mask 32) `shouldBe` Octets 110 220 34 15 
-      
+      start (Octets 110 220 34 15) (Mask 31) `shouldBe` Octets 110 220 34 14
+      start (Octets 110 220 34 15) (Mask 32) `shouldBe` Octets 110 220 34 15
+
   describe "broadcastAddr" $ do
-    it "gives the right value for some examples" $ do 
-      broadcastAddr (Octets 110 220 34 15) (Mask 8) `shouldBe` Octets 110 255 255 255  
-      broadcastAddr (Octets 110 220 34 15) (Mask 16) `shouldBe` Octets 110 220 255 255 
+    it "gives the right value for some examples" $ do
+      broadcastAddr (Octets 110 220 34 15) (Mask 8) `shouldBe` Octets 110 255 255 255
+      broadcastAddr (Octets 110 220 34 15) (Mask 16) `shouldBe` Octets 110 220 255 255
       broadcastAddr (Octets 110 220 34 15) (Mask 24) `shouldBe` Octets 110 220 34 255
-      broadcastAddr (Octets 110 220 34 15) (Mask 11) `shouldBe` Octets 110 223 255 255 
+      broadcastAddr (Octets 110 220 34 15) (Mask 11) `shouldBe` Octets 110 223 255 255
       broadcastAddr (Octets 110 220 34 15) (Mask 30) `shouldBe` Octets 110 220 34 15
       broadcastAddr (Octets 110 220 34 15) (Mask 31) `shouldBe` Octets 110 220 34 15
       broadcastAddr (Octets 110 220 34 15) (Mask 32) `shouldBe` Octets 110 220 34 15
 
   describe "end" $ do
-    it "gives the right value for some examples" $ do 
-      end (Octets 110 220 34 15) (Mask 8) `shouldBe` Octets 110 255 255 254  
-      end (Octets 110 220 34 15) (Mask 16) `shouldBe` Octets 110 220 255 254 
+    it "gives the right value for some examples" $ do
+      end (Octets 110 220 34 15) (Mask 8) `shouldBe` Octets 110 255 255 254
+      end (Octets 110 220 34 15) (Mask 16) `shouldBe` Octets 110 220 255 254
       end (Octets 110 220 34 15) (Mask 24) `shouldBe` Octets 110 220 34 254
       end (Octets 110 220 34 15) (Mask 11) `shouldBe` Octets 110 223 255 254
       end (Octets 110 220 34 15) (Mask 30) `shouldBe` Octets 110 220 34 14
@@ -168,7 +191,7 @@ main = hspec $ do
 
     it "is the inverse of Bits's show" $ do
       property (\m -> parseMask (T.pack $ show $ Bits m) == (m, Binary))
- 
+
   -- Generator Functions
 
   describe "genClass" $ do
