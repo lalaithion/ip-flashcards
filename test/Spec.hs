@@ -18,9 +18,8 @@ import Test.QuickCheck (Arbitrary, arbitrary)
 
 import Control.Monad
 import Data.Char
-import Data.List.Split
 import Data.Maybe
-import qualified Data.Text as T
+import Data.List.Split
 
 import Lib
 
@@ -183,14 +182,22 @@ main = hspec $ do
 
   describe "parseIP" $ do
     it "is the inverse of IP's show" $ do
-      property (\i -> parseIP (T.pack $ show i) == i)
+      property (\i -> parseIP (show i) == Just i)
+
+    -- How flaky will this be?
+    it "chokes on random strings" $ do
+      property (\s -> parseIP s == Nothing)
 
   describe "parseMask" $ do
     it "is the inverse of Slash's show" $ do
-      property (\m -> parseMask (T.pack $ show $ Slash m) == (m, Cidr))
+      property (\m -> parseMask (show $ Slash m) == Just (m, Cidr))
 
     it "is the inverse of Bits's show" $ do
-      property (\m -> parseMask (T.pack $ show $ Bits m) == (m, Binary))
+      property (\m -> parseMask (show $ Bits m) == Just (m, Binary))
+
+    -- How flaky will this be?
+    it "chokes on random strings" $ do
+      property (\s -> parseMask s == Nothing)
 
   -- Generator Functions
 

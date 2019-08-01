@@ -17,8 +17,9 @@ module Lib where
 
 import           Data.Bits     ((.&.), (.|.))
 import           Data.List
+import           Data.List.Split
 import           System.Random
-import qualified Data.Text as T
+import           Text.Read
 
 ----------------------
 -- * Data Structures
@@ -238,18 +239,19 @@ mkPrivate (Octets a b c d)
 -- * Parsing
 -------------
 
--- | 'readText' is 'read' but for 'T.Text'.
-readText :: (Read a) => T.Text -> a
-readText = read . T.unpack
-
 -- | 'parseIP' parses an IP from a 'T.Text' value.
-parseIP :: T.Text -> Ipv4
-parseIP t = let
-  [a,b,c,d] = T.splitOn "." t
-  in Octets (readText a) (readText b) (readText c) (readText d)
+parseIP :: String -> Maybe Ipv4
+parseIP t = do
+  [a,b,c,d] <- mapM readMaybe $ splitOn "." t
+  return $ Octets a b c d
 
 -- | 'parseMask' parses a Mask and its format from a 'T.Text' value, in either 'Slash' or 'Bits' format.
-parseMask :: T.Text -> (Mask, Format)
-parseMask t = case T.head t of
-  '/' -> (Mask $ readText $ T.tail t, Cidr)
-  _ -> (Mask $ sum $ map (invResidual . readText) $ T.splitOn "." t, Binary)
+parseMask :: String -> Maybe (Mask, Format)
+parseMask "" = Nothing
+parseMask t = case head t of
+  '/' -> do
+    m <- Mask <$> readMaybe (tail t)
+    return (m, Cidr)
+  _ -> do
+    [a, b, c, d] <- map invResidual <$> mapM readMaybe (splitOn "." t)
+    return (Mask (a + b + c + d), Binary)

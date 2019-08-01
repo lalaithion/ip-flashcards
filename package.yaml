@@ -29,7 +29,7 @@ dependencies:
 - base >= 4.7 && < 5
 - random
 - text
-- turtle
+- split
 
 library:
   source-dirs: src
@@ -76,5 +76,4 @@ tests:
     dependencies:
     - ipgenerator
     - hspec
-    - split
     - QuickCheck

@@ -14,20 +14,50 @@ limitations under the License. -}
 
 {-# LANGUAGE OverloadedStrings #-}
 
-import           Turtle.Options
-
 import           Lib
+import           System.Environment
+import           System.Exit
+
+helpMessage :: String
+helpMessage = "ip-answer is a command line tool for answering information about\n\
+              \ip addresses with subnet masks. It is a companion tool to ip-generate\n\
+              \and in general a line of output from ip-generate is a valid set of\n\
+              \arguments for ip-answer.\n\
+              \\n\
+              \usage:     ip-answer IP-ADDRESS MASK\n\
+              \\n\
+              \IP-ADDRESS This is an IP address written as four numbers between 0 and 255\n\
+              \           separated by periods, such as 127.0.0.1 or 8.8.8.8\n\
+              \\n\
+              \MASK       This is a mask either written in Cidr notation or as a\n\
+              \           bitmask. Cidr notation would be /8 or /21 and a bitmask\n\
+              \           would be 255.0.0.0 or 255.255.248.0\n\
+              \\n\
+              \Common errors:\n\
+              \  * The IP-ADDRESS and the MASK must be separatec by a space.\n\
+              \    10.6.0.1/13 is not a valid argument."
+
+printHelpAndExit :: IO a
+printHelpAndExit = do
+  putStrLn helpMessage
+  exitFailure
 
 -- | 'parser' parses the command line input.
-parser :: Parser (Ipv4, Mask, Format)
-parser = (\a  (b, c) -> (a, b, c))
-  <$> (parseIP <$> argText "ip" "The IP v4 address")
-  <*> (parseMask <$> argText "mask" "The IP mask in CIDR and Bits")
+parse :: IO (Ipv4, Mask, Format)
+parse = do
+  args <- getArgs
+  case args of
+    [] -> printHelpAndExit
+    [_] -> printHelpAndExit
+    [ipString, maskString] -> case (parseIP ipString, parseMask maskString) of
+      (Just ip, Just (mask, fmt)) -> return (ip, mask, fmt)
+      _ -> printHelpAndExit
+    _ -> printHelpAndExit
 
 -- | 'main' uses 'parser' to parse the input, and then prints all of the information about that input
 main :: IO ()
 main = do
-  (ip, mask, fmt) <- options "Gets the information about a given Subnet" parser
+  (ip, mask, fmt) <- parse
 
   putStr "Other format of mask: "
 
