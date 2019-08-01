@@ -23,7 +23,7 @@ import qualified Data.Text as T
 import Test.QuickCheck (Arbitrary, arbitrary)
 
 ----------------------
--- * Data Structures 
+-- * Data Structures
 ----------------------
 
 -- Command Line Options
@@ -44,7 +44,7 @@ data Ipv4 = Octets Int Int Int Int deriving Eq
 
 -- | 'validIp' checks to see if the IP satisfies its constraint.
 validIp :: Ipv4 -> Bool
-validIp (Octets a b c d) = 
+validIp (Octets a b c d) =
   0 <= a && a <= 255
   && 0 <= b && b <= 255
   && 0 <= c && c <= 255
@@ -55,7 +55,7 @@ validIp (Octets a b c d) =
 instance Show Ipv4 where
   show (Octets a b c d) = intercalate "." $ map show [a,b,c,d]
 
--- | 'Mask' represents an IP range via a mask length. 
+-- | 'Mask' represents an IP range via a mask length.
 -- Constraint: The mask is between 8 and 31
 newtype Mask = Mask Int deriving (Eq, Show)
 
@@ -166,7 +166,7 @@ end ip m = let
 
 -- | 'whichClass' gives the class of the IP, and if it is not in one of the classes, returns 'All'.
 whichClass :: Ipv4 -> Class
-whichClass (Octets a b c d)
+whichClass (Octets a _ _ _)
   | a < 128 = A
   | 128 <= a && a < 192 = B
   | 192 <= a && a < 224 = C
@@ -174,7 +174,7 @@ whichClass (Octets a b c d)
 
 -- | 'isPrivate' is a predicate for whether the IP is in a private range or not.
 isPrivate :: Ipv4 -> Bool
-isPrivate (Octets a b c d)
+isPrivate (Octets a b _ _)
   | a == 10 = True
   | a == 172 && 16 <= b && b < 32 = True
   | a == 192 && b == 168 = True
@@ -184,7 +184,7 @@ isPrivate (Octets a b c d)
 -- * Generator Functions
 --------------------------
 
--- | 'genClass' uses IO to generate a random 'Class'. 
+-- | 'genClass' uses IO to generate a random 'Class'.
 genClass :: IO Class -- TODO(lalaition): make this generic over any random source for ease of testing
 genClass = do
   x <- randomIO :: IO Int
@@ -192,8 +192,9 @@ genClass = do
     0 -> A
     1 -> B
     2 -> C
+    _ -> error $ show x ++ " mod 3 was not 0, 1, or 2."
 
--- | 'genMask' uses IO to generate a random 'Mask'. 
+-- | 'genMask' uses IO to generate a random 'Mask'.
 genMask :: IO Mask
 genMask = do
   i <- randomIO :: IO Int
@@ -256,7 +257,7 @@ parseMask t = case T.head t of
   _ -> (Mask $ sum $ map (invResidual . readText) $ T.splitOn "." t, Binary)
 
 --------------
--- * Testing 
+-- * Testing
 --------------
 
 instance Arbitrary Mask where
@@ -278,4 +279,3 @@ instance Arbitrary ArbB where
 
 instance Arbitrary ArbC where
   arbitrary = ArbC <$> (mkC <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary)
-
