@@ -42,7 +42,27 @@ defaultPartial :: PartialOptions
 defaultPartial = PartialOptions Nothing Nothing Nothing Nothing
 
 helpMessage :: String
-helpMessage = "ip-generator"
+helpMessage = "ip-generate is a command line tool for generating ip addresses according\n\
+              \to a variety of command line flags. It is a companion tool to ip-answer\n\
+              \and in general a line of output from ip-generate is a valid set of\n\
+              \arguments for ip-answer.\n\
+              \\n\
+              \usage:        ip-generate [--private] [--cidr|--binary] [--class {A|B|C}] --number NUMBER\n\
+              \\n\
+              \--private -p  Indicates that the IPs generated should be private\n\
+              \\n\
+              \--cidr    -c  Indicates that the IPs should be displayed in cidr notation\n\
+              \--binary  -b  Indicates that the IPs should be displayed in mask notation\n\
+              \              If neither of the above are specified, a mix of the two will\n\
+              \              be generated\n\
+              \\n\
+              \--class   -s  Indicates which class of IP should be generated. If not specified,\n\
+              \              both classes will be generated.\n\
+              \\n\
+              \--number  -n  Followed by the number of IPs to generate. Required.\n\
+              \\n\
+              \If two contradictory arguemnts are passed in, the one occuring later in the\n\
+              \list overrides the former."
 
 printHelpAndExit :: IO a
 printHelpAndExit = do
