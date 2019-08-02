@@ -31,6 +31,7 @@ data Options = Options
   , private :: Bool
   } deriving (Eq, Show)
 
+-- | 'PartialOptions' represents an Options in the middle of being parsed
 data PartialOptions = PartialOptions
   { mformat  :: Maybe Format
   , mamount  :: Maybe Int
@@ -38,9 +39,12 @@ data PartialOptions = PartialOptions
   , mprivate :: Maybe Bool
   } deriving (Eq, Show)
 
+-- | This is a 'PartialOptions' with no values initialized.
 defaultPartial :: PartialOptions
 defaultPartial = PartialOptions Nothing Nothing Nothing Nothing
 
+-- | The help message printed out when this program exits due to a failed parse
+-- of command line arguments.
 helpMessage :: String
 helpMessage = "ip-generate is a command line tool for generating ip addresses according\n\
               \to a variety of command line flags. It is a companion tool to ip-answer\n\
@@ -64,6 +68,7 @@ helpMessage = "ip-generate is a command line tool for generating ip addresses ac
               \If two contradictory arguemnts are passed in, the one occuring later in the\n\
               \list overrides the former."
 
+-- | prints 'helpMessage' and exits with a failed exit code.
 printHelpAndExit :: IO a
 printHelpAndExit = do
   putStrLn helpMessage
@@ -78,21 +83,28 @@ intoOptions opts = Options
   <*> return (fromMaybe All (mipclass opts))
   <*> return (fromMaybe False (mprivate opts))
 
+-- | Sets the format option to 'Cidr' in the 'PartialOptions'
 addCidr :: PartialOptions -> PartialOptions
 addCidr opts = opts {mformat = Just Cidr}
 
+-- | Sets the format option to 'Binary' in the 'PartialOptions'
 addBinary :: PartialOptions -> PartialOptions
 addBinary opts = opts {mformat = Just Binary}
 
+-- | Sets the private option in the 'PartialOptions'
 addPrivate :: PartialOptions -> PartialOptions
 addPrivate opts = opts {mprivate = Just True}
 
+-- | Sets the class in the 'PartialOptions'. Can fail and consumes the next
+-- item in the args string if successful.
 addClass :: PartialOptions -> [String] -> IO (PartialOptions, [String])
 addClass opts ("A":xs) = return (opts {mipclass = Just A}, xs)
 addClass opts ("B":xs) = return (opts {mipclass = Just B}, xs)
 addClass opts ("C":xs) = return (opts {mipclass = Just C}, xs)
 addClass _ _ = printHelpAndExit
 
+-- | Sets the amount in the 'PartialOptions'. Can fail and consumes the next
+-- item in the args string if successful.
 addNumber :: PartialOptions -> [String] -> IO (PartialOptions, [String])
 addNumber opts (x:xs) | Just n <- readMaybe x = return (opts {mamount = Just n}, xs)
 addNumber _ _ = printHelpAndExit
@@ -101,6 +113,7 @@ addNumber _ _ = printHelpAndExit
 expandJumble :: String -> [String]
 expandJumble = map (\c -> ['-', c])
 
+-- | 'parseOptions' is a tail recursive function that parses a list of flags into an 'Options'
 parseOptions :: PartialOptions -> [String] -> IO Options
 parseOptions acc [] = intoOptions acc
 parseOptions acc (x:xs)
