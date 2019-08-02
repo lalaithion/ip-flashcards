@@ -24,7 +24,7 @@ import Data.List.Split
 import Lib
 
 -- Yes, there are orphan instances. I am not compiling the entire test
--- framework into the entire release binary.
+-- framework into the release binary.
 instance Arbitrary Mask where
   arbitrary = Mask . (+8) . (flip mod 24) <$> arbitrary
 
