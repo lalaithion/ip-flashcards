@@ -12,8 +12,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License. -}
 
-{-# LANGUAGE OverloadedStrings #-}
-
 import           Control.Monad (replicateM_)
 import           Data.Maybe    (fromMaybe, isJust, fromJust, fromMaybe)
 import           System.Random
@@ -22,6 +20,7 @@ import           System.Exit
 import           Text.Read
 
 import           Lib
+import Debug.Trace
 
 -- | 'Options' holds the command line options for this program
 data Options = Options
@@ -111,7 +110,8 @@ addNumber _ _ = printHelpAndExit
 
 -- | expandJumble takes arguments like "-cpn" and makes them into "-c -p -n"
 expandJumble :: String -> [String]
-expandJumble = map (\c -> ['-', c])
+-- The filter below is needed, otherwise `--` expands to `--`, an infinite loop
+expandJumble = map (\c -> ['-', c]) . filter (/='-')
 
 -- | 'parseOptions' is a tail recursive function that parses a list of flags into an 'Options'
 parseOptions :: PartialOptions -> [String] -> IO Options
@@ -126,7 +126,8 @@ parseOptions acc (x:xs)
   | x == "-n" || x == "--number" = do
     (acc', xs') <- addNumber acc xs
     parseOptions acc' xs'
-  | head x == '-' = parseOptions acc (expandJumble (tail x) ++ xs)
+  | head x == '-' && all (\c -> elem c "cbpsn") (tail x) =
+    traceShow x $ parseOptions acc (expandJumble (tail x) ++ xs)
   | otherwise = printHelpAndExit
 
 -- | 'parse' parses the command line input.

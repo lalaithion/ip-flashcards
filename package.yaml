@@ -37,7 +37,7 @@ library:
     - -Werror
 
 executables:
-  ipgenerator-exe:
+  ipgenerate-exe:
     main:                Main.hs
     source-dirs:         gen
     ghc-options:
