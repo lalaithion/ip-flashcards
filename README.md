@@ -12,17 +12,13 @@ said minutiae about the IPs.
 In the end, this became a place for me to try and write a small Haskell program
 of good enough quality to be shipped.
 
------------------
+
 | Goal | Status |
------------------
+| ---- | ---- |
 | Full unit tests covering the library | Done |
------------------
 | Full integration tests covering the binaries | TODO |
------------------
 | CI that verifies that tests pass and code is formatted | TODO |
------------------
 | Installation via package manager (brew, apt, yum, nix) | TODO |
------------------
 
 ## How to install manually
 
