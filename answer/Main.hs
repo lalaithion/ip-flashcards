@@ -12,12 +12,12 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License. -}
 
-{-# LANGUAGE OverloadedStrings #-}
-
 import           Lib
 import           System.Environment
 import           System.Exit
 
+-- | The help message printed out when this program exits due to a failed parse
+-- of command line arguments.
 helpMessage :: String
 helpMessage = "ip-answer is a command line tool for answering information about\n\
               \ip addresses with subnet masks. It is a companion tool to ip-generate\n\
@@ -37,12 +37,13 @@ helpMessage = "ip-answer is a command line tool for answering information about\
               \  * The IP-ADDRESS and the MASK must be separatec by a space.\n\
               \    10.6.0.1/13 is not a valid argument."
 
+-- | prints 'helpMessage' and exits with a failed exit code.
 printHelpAndExit :: IO a
 printHelpAndExit = do
   putStrLn helpMessage
   exitFailure
 
--- | 'parser' parses the command line input.
+-- | 'parse' parses the command line input.
 parse :: IO (Ipv4, Mask, Format)
 parse = do
   args <- getArgs
