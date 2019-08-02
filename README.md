@@ -14,7 +14,7 @@ of good enough quality to be shipped.
 
 
 | Goal | Status |
------------------
+| ---- | ---- |
 | Full unit tests covering the library | Done |
 | Full integration tests covering the binaries | TODO |
 | CI that verifies that tests pass and code is formatted | TODO |
