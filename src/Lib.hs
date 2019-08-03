@@ -49,18 +49,31 @@ validIp (Octets a b c d) =
   && 0 <= c && c <= 255
   && 0 <= d && d <= 255
 
+validMask :: Mask -> Bool
+validMask (Mask )
+
 
 -- | This 'Show' instance isn't exactly lawful, but 'Show' doesn't have laws anyway.
 instance Show Ipv4 where
   show (Octets a b c d) = intercalate "." $ map show [a,b,c,d]
 
 -- | 'Mask' represents an IP range via a mask length.
--- Constraint: The mask is between 8 and 31
+-- Constraint: The mask is between 8 and 32
 newtype Mask = Mask Int deriving (Eq, Show)
 
 -- | 'unMask' unwraps a 'Mask'
 unMask :: Mask -> Int
 unMask (Mask i) = i
+
+validIp :: Ipv4 -> Bool
+validIp (Octets a b c d) =
+  0 <= a && a <= 255
+  && 0 <= b && b <= 255
+  && 0 <= c && c <= 255
+  && 0 <= d && d <= 255
+
+validMask :: Mask -> Bool
+validMask (Mask i) = i <= 32 && i > 8
 
 -- | 'Slash' is a 'Mask' formatted in the /24 notation
 -- Using newtypes as a formatting mechanism isn't exactly kosher, but it's what I did.
@@ -254,9 +267,10 @@ mkPrivate (Octets a b c d)
 -- | 'parseIP' parses an IP from a 'T.Text' value.
 parseIP :: String -> Maybe Ipv4
 parseIP t = do
-  ls@[a,b,c,d] <- mapM readMaybe $ splitOn "." t
-  guard $ all (\x -> x >= 0 && x <= 255) ls
-  return $ Octets a b c d
+  [a,b,c,d] <- mapM readMaybe $ splitOn "." t
+  let ip = Octets a b c d
+  guard $ validIp ip
+  return ip
 
 -- | 'parseMask' parses a Mask and its format from a 'T.Text' value, in either 'Slash' or 'Bits' format.
 parseMask :: String -> Maybe (Mask, Format)
@@ -264,8 +278,11 @@ parseMask "" = Nothing
 parseMask t = case head t of
   '/' -> do
     m <- Mask <$> readMaybe (tail t)
+    guard $ validMask m
     return (m, Cidr)
   _ -> do
     ls <- mapM readMaybe (splitOn "." t)
     [a, b, c, d] <- mapM invResidual ls
-    return (Mask (a + b + c + d), Binary)
+    let m = Mask (a + b + c + d)
+    guard $ validMask m
+    return (m, Binary)
