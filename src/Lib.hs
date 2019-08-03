@@ -14,6 +14,7 @@ limitations under the License. -}
 
 module Lib where
 
+import           Control.Monad
 import           Data.Bits     ((.&.), (.|.))
 import           Data.List
 import           Data.List.Split
@@ -91,38 +92,50 @@ residual 6 = 252
 residual 7 = 254
 residual x = if x >= 8 then 255 else 0
 
--- | 'invResidual' is a partial function. It can only be used on values output by 'residual'.
-invResidual :: Int -> Int
-invResidual 0   = 0
-invResidual 128 = 1
-invResidual 192 = 2
-invResidual 224 = 3
-invResidual 240 = 4
-invResidual 248 = 5
-invResidual 252 = 6
-invResidual 254 = 7
-invResidual 255 = 8
-invResidual x   = error (show x ++ " is not a valid output of residual")
+-- | 'invResidual' is properly a partial function. It can only be used on values output by 'residual'.
+-- But, partial functions suck, so we're using Maybe instead.
+invResidual :: Int -> Maybe Int
+invResidual 0   = Just 0
+invResidual 128 = Just 1
+invResidual 192 = Just 2
+invResidual 224 = Just 3
+invResidual 240 = Just 4
+invResidual 248 = Just 5
+invResidual 252 = Just 6
+invResidual 254 = Just 7
+invResidual 255 = Just 8
+invResidual _   = Nothing
 
 --------------------
 -- * Network Logic
 --------------------
+
+-- | The normal exponent function can throw errors when the exponent is negative.
+(^?) :: Integral a => a -> a -> Maybe a
+a ^? e = if e < 0 then Nothing else Just (a^e)
+
+-- | Converts 'Maybe' to 'Either'
+toRight :: b -> Maybe a -> Either b a
+toRight b Nothing = Left b
+toRight _ (Just a) = Right a
 
 -- | 'toIp' converts a 'Mask' into an IP just like the 'Bits' formatter does.
 toIp :: Mask -> Ipv4
 toIp (Mask i) = Octets (residual i) (residual $ i - 8) (residual $ i - 16) (residual $ i - 24)
 
 -- | 'hostNum' outputs the number of usable hosts in the masked subnet.
-hostNum :: Mask -> Int
-hostNum (Mask i) = 2^(32 - i) - 2
+hostNum :: Mask -> Maybe Int
+hostNum (Mask i) = case 2^?(32 - i) of
+  Just x -> Just (x - 2)
+  Nothing -> Nothing
 
 -- | 'subnetNum' outputs the number of subnets with the specified mask exist in the class indicated by the IP.
-subnetNum :: Ipv4 -> Mask -> Maybe Int
+subnetNum :: Ipv4 -> Mask -> Either String Int
 subnetNum ip (Mask i) = case whichClass ip of
-  A -> Just $ 2^(i - 8)
-  B -> Just $ 2^(i - 16)
-  C -> Just $ 2^(i - 24)
-  _ -> Nothing
+  A -> toRight "Could not determine the number of subnets, as the mask was too big for the class the IP was in" (2^?(i - 8))
+  B -> toRight "Could not determine the number of subnets, as the mask was too big for the class the IP was in" (2^?(i - 16))
+  C -> toRight "Could not determine the number of subnets, as the mask was too big for the class the IP was in" (2^?(i - 24))
+  _ -> Left "Could not determine the number of subnets, as the IP was not in classes A, B, or C"
 
 -- | 'subnetAddr' outputs the address of the subnet containing the given IP and the size of the mask.
 subnetAddr :: Ipv4 -> Mask -> Ipv4
@@ -241,7 +254,8 @@ mkPrivate (Octets a b c d)
 -- | 'parseIP' parses an IP from a 'T.Text' value.
 parseIP :: String -> Maybe Ipv4
 parseIP t = do
-  [a,b,c,d] <- mapM readMaybe $ splitOn "." t
+  ls@[a,b,c,d] <- mapM readMaybe $ splitOn "." t
+  guard $ all (\x -> x >= 0 && x <= 255) ls
   return $ Octets a b c d
 
 -- | 'parseMask' parses a Mask and its format from a 'T.Text' value, in either 'Slash' or 'Bits' format.
@@ -252,5 +266,6 @@ parseMask t = case head t of
     m <- Mask <$> readMaybe (tail t)
     return (m, Cidr)
   _ -> do
-    [a, b, c, d] <- map invResidual <$> mapM readMaybe (splitOn "." t)
+    ls <- mapM readMaybe (splitOn "." t)
+    [a, b, c, d] <- mapM invResidual ls
     return (Mask (a + b + c + d), Binary)

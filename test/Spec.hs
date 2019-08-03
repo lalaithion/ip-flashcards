@@ -89,7 +89,7 @@ main = hspec $ do
 
   describe "residual and invResidual" $ do
     it "are inverses, over the range of residual" $ do
-      property (\x -> residual (invResidual (residual x)) == residual x)
+      property (\x -> residual <$> invResidual (residual x) == Just (residual x))
 
   -- Network Logic
 
