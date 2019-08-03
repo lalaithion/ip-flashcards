@@ -62,7 +62,7 @@ unMask :: Mask -> Int
 unMask (Mask i) = i
 
 validMask :: Mask -> Bool
-validMask (Mask i) = i <= 32 && i > 8
+validMask (Mask i) = i <= 32 && i >= 8
 
 -- | 'Slash' is a 'Mask' formatted in the /24 notation
 -- Using newtypes as a formatting mechanism isn't exactly kosher, but it's what I did.

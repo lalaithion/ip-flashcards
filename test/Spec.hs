@@ -19,6 +19,7 @@ import Test.QuickCheck (Arbitrary, arbitrary)
 import Control.Monad
 import Data.Char
 import Data.Maybe
+import Data.Either
 import Data.List.Split
 
 import Lib
@@ -89,7 +90,7 @@ main = hspec $ do
 
   describe "residual and invResidual" $ do
     it "are inverses, over the range of residual" $ do
-      property (\x -> residual <$> invResidual (residual x) == Just (residual x))
+      property (\x -> (residual <$> invResidual (residual x)) == Just (residual x))
 
   -- Network Logic
 
@@ -102,32 +103,32 @@ main = hspec $ do
 
   describe "hostNum" $ do
     it "always produces a positive number" $ do
-      property (\m -> hostNum m >= 0)
+      property (\m -> fromMaybe (-1) (hostNum m) >= 0)
 
     it "gives the right value for some examples" $ do
-      hostNum (Mask 9) `shouldBe` 8388606
-      hostNum (Mask 19) `shouldBe` 8190
-      hostNum (Mask 26) `shouldBe` 62
+      hostNum (Mask 9) `shouldBe` Just 8388606
+      hostNum (Mask 19) `shouldBe` Just 8190
+      hostNum (Mask 26) `shouldBe` Just 62
 
   describe "subnetNum" $ do
     it "always produces a positive number for class A networks" $ do
-      property (\(ArbA (i, m)) -> fromMaybe 0 (subnetNum i m) >= 0)
+      property (\(ArbA (i, m)) -> fromRight 0 (subnetNum i m) >= 0)
 
     it "always produces a positive number for class B networks" $ do
-      property (\(ArbB (i, m)) -> fromMaybe 0 (subnetNum i m) >= 0)
+      property (\(ArbB (i, m)) -> fromRight 0 (subnetNum i m) >= 0)
 
     it "always produces a positive number for class C networks" $ do
-      property (\(ArbC (i, m)) -> fromMaybe 0 (subnetNum i m) >= 0)
+      property (\(ArbC (i, m)) -> fromRight 0 (subnetNum i m) >= 0)
 
     it "gives the right value for some examples" $ do
-      subnetNum (Octets 110 0 0 0) (Mask 26) `shouldBe` Just 262144
-      subnetNum (Octets 150 0 0 0) (Mask 26) `shouldBe` Just 1024
-      subnetNum (Octets 222 0 0 0) (Mask 26) `shouldBe` Just 4
+      subnetNum (Octets 110 0 0 0) (Mask 26) `shouldBe` Right 262144
+      subnetNum (Octets 150 0 0 0) (Mask 26) `shouldBe` Right 1024
+      subnetNum (Octets 222 0 0 0) (Mask 26) `shouldBe` Right 4
 
-      subnetNum (Octets 110 0 0 0) (Mask 19) `shouldBe` Just 2048
-      subnetNum (Octets 150 0 0 0) (Mask 19) `shouldBe` Just 8
+      subnetNum (Octets 110 0 0 0) (Mask 19) `shouldBe` Right 2048
+      subnetNum (Octets 150 0 0 0) (Mask 19) `shouldBe` Right 8
 
-      subnetNum (Octets 110 0 0 0) (Mask 9) `shouldBe` Just 2
+      subnetNum (Octets 110 0 0 0) (Mask 9) `shouldBe` Right 2
 
   describe "subnetAddr" $ do
     it "is idempotent" $ do
