@@ -49,10 +49,6 @@ validIp (Octets a b c d) =
   && 0 <= c && c <= 255
   && 0 <= d && d <= 255
 
-validMask :: Mask -> Bool
-validMask (Mask )
-
-
 -- | This 'Show' instance isn't exactly lawful, but 'Show' doesn't have laws anyway.
 instance Show Ipv4 where
   show (Octets a b c d) = intercalate "." $ map show [a,b,c,d]
@@ -64,13 +60,6 @@ newtype Mask = Mask Int deriving (Eq, Show)
 -- | 'unMask' unwraps a 'Mask'
 unMask :: Mask -> Int
 unMask (Mask i) = i
-
-validIp :: Ipv4 -> Bool
-validIp (Octets a b c d) =
-  0 <= a && a <= 255
-  && 0 <= b && b <= 255
-  && 0 <= c && c <= 255
-  && 0 <= d && d <= 255
 
 validMask :: Mask -> Bool
 validMask (Mask i) = i <= 32 && i > 8
