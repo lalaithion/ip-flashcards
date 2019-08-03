@@ -105,7 +105,7 @@ Common errors:
 $ stack exec ipanswer-exe -- 24.25.26.17 /18
 Other format of mask: 255.255.192.0
 Number of hosts: 16382
-Number of subnets: "1024"
+Number of subnets: 1024
 Subnet Address: 24.25.0.0
 Broadcast Address: 24.25.63.255
 Range of IP Addresses: 24.25.0.1-24.25.63.254
@@ -116,7 +116,7 @@ Wildcard mask: 0.0.63.255
 stack exec ipanswer-exe -- 10.22.25.166 255.248.0.0
 Other format of mask: /13
 Number of hosts: 524286
-Number of subnets: "32"
+Number of subnets: 32
 Subnet Address: 10.16.0.0
 Broadcast Address: 10.23.255.255
 Range of IP Addresses: 10.16.0.1-10.23.255.254

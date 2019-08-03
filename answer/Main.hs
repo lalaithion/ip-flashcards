@@ -35,7 +35,9 @@ helpMessage = "ip-answer is a command line tool for answering information about\
               \\n\
               \Common errors:\n\
               \  * The IP-ADDRESS and the MASK must be separatec by a space.\n\
-              \    10.6.0.1/13 is not a valid argument."
+              \    10.6.0.1/13 is not a valid argument.\n\
+              \  * The IP-ADDRESS or the MASK must be valid values. 300.300.300.300\n\
+              \    is not a valid IP-ADDRESS, and 3.244.2.0 is not a valid MASK"
 
 -- | prints 'helpMessage' and exits with a failed exit code.
 printHelpAndExit :: IO a
@@ -48,8 +50,6 @@ parse :: IO (Ipv4, Mask, Format)
 parse = do
   args <- getArgs
   case args of
-    [] -> printHelpAndExit
-    [_] -> printHelpAndExit
     [ipString, maskString] -> case (parseIP ipString, parseMask maskString) of
       (Just ip, Just (mask, fmt)) -> return (ip, mask, fmt)
       _ -> printHelpAndExit
@@ -71,9 +71,9 @@ main = do
   print (hostNum mask)
 
   putStr "Number of subnets: "
-  print $ case subnetNum ip mask of
-    Just i -> show i
-    Nothing -> "Could not determine the number of subnets, as the ip was not in classes A, B, or C"
+  putStrLn $ case subnetNum ip mask of
+    Right i -> show i
+    Left s -> s
 
   putStr "Subnet Address: "
   print (subnetAddr ip mask)
