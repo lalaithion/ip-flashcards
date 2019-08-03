@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/lalaithion/ip-flashcards.svg?branch=master)](https://travis-ci.org/lalaithion/ip-flashcards)
+
 # IP Generator
 
 This project was designed to help a friend study for the CCNA; they kept asking
@@ -11,7 +13,6 @@ said minutiae about the IPs.
 
 In the end, this became a place for me to try and write a small Haskell program
 of good enough quality to be shipped.
-
 
 | Goal | Status |
 | ---- | ---- |
