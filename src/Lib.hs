@@ -61,6 +61,7 @@ newtype Mask = Mask Int deriving (Eq, Show)
 unMask :: Mask -> Int
 unMask (Mask i) = i
 
+-- | 'validMask' checks to see if the Mask satisfies its constraint.
 validMask :: Mask -> Bool
 validMask (Mask i) = i <= 32 && i >= 8
 
@@ -253,7 +254,7 @@ mkPrivate (Octets a b c d)
 -- * Parsing
 -------------
 
--- | 'parseIP' parses an IP from a 'T.Text' value.
+-- | 'parseIP' parses an IP from a 'String'.
 parseIP :: String -> Maybe Ipv4
 parseIP t = do
   [a,b,c,d] <- mapM readMaybe $ splitOn "." t
@@ -261,7 +262,7 @@ parseIP t = do
   guard $ validIp ip
   return ip
 
--- | 'parseMask' parses a Mask and its format from a 'T.Text' value, in either 'Slash' or 'Bits' format.
+-- | 'parseMask' parses a Mask and its format from a 'String', in either 'Slash' or 'Bits' format.
 parseMask :: String -> Maybe (Mask, Format)
 parseMask "" = Nothing
 parseMask t = case head t of
